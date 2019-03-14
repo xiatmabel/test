@@ -59,13 +59,19 @@ function getDevices(buildingId, floorId, zoneId){
 	for(var i = 0; i < Object.keys(sensor).length; i++){
 //		$.each(result, function(line, value) {
 			if(sensor[i].device.type == 2 && sensor[i].device.subtype==2 ){
+				var sensorDelay = 0;
+				$.post(ctx+'/device/getDelayBySensorIdAndDeviceId', {deviceId:-1, sensorId:sensor[i].device.id},
+						function(result){
+					sensorDelay = result;
+				});
 				$("#sensorButtonSaveDelay").empty();
 				$('#sensor-location').html(sensor[i].location);
 				var sensorRow = '<tr bgcolor = "#00B005";font-weight:bold;>';				
 				sensorRow += '<td>' + sensor[i].device.name
+				        + "</td><td>"
 						+ "</td><td>" + sensor[i].device.shortId
 						+ "</td><td>" + sensor[i].location
-						+ "</td><td></td><td></td><td></td><td></td></tr>";
+						+ "</td><td></td><td></td><td></td><td></td><td></td></tr>";
 				$("#devices tbody").append(sensorRow);
 				var trCtrl = $("#devices tbody tr:last");
 				trCtrl.data("deviceId", sensor[i].device.id);
@@ -73,19 +79,19 @@ function getDevices(buildingId, floorId, zoneId){
 				var img = $("<img/>");
 				img.css("width", "30px").css("height", "30px");
 				img.attr("src", ctx + "/images/sensor.png");
-				trCtrl.find("td").eq(3).append(img).addClass("pic_align");
+				trCtrl.find("td").eq(4).append(img).addClass("pic_align");
 				var button = $('<a/>');
-				trCtrl.find("td").eq(5).append(button);
+				trCtrl.find("td").eq(6).append(button);
 				button.linkbutton({
 					plain:true,
 					iconCls:'icon-add',
 				});
 				button.bind('click', showItems);
-				trCtrl.find("td").eq(6).append(sensor[i].device.delay);
-				trCtrl.find("td").eq(6).append("  ");
+				trCtrl.find("td").eq(8).append(sensorDelay);
+				trCtrl.find("td").eq(8).append("  ");
 				
 				var sensorButtonDelay = $('<a/>');
-				trCtrl.find("td").eq(6).append(sensorButtonDelay);
+				trCtrl.find("td").eq(8).append(sensorButtonDelay);
 				sensorButtonDelay.linkbutton({
 					text:msgChange,
 				});
@@ -103,22 +109,33 @@ function getDevices(buildingId, floorId, zoneId){
 					devices = result;
 
 				});
-				
 //				$.ajaxSetup({async: true});
 
 				for(var j = 0; j < Object.keys(devices).length; j++){
+					var delayTime = 0;
+					var brightness = 0;
+					$.post(ctx+'/device/getDelayBySensorIdAndDeviceId', {deviceId:devices[j].device.id, sensorId:sensor[i].device.id},
+							function(result){
+						delayTime = result;
+					});
+					$.post(ctx+'/device/getBrightnessBySensorIdAndDeviceId', {deviceId:devices[j].device.id, sensorId:sensor[i].device.id},
+							function(result){
+						brightness = result;
+					});
 							if (j%2==1){
 								var deviceRow = '<tr class="odd" loaded="false">';
 								deviceRow += '<td>' + devices[j].device.name
+								+ "</td><td>" + sensor[i].device.shortId
 								+ "</td><td>" + devices[j].device.shortId
 								+ "</td><td>" + devices[j].location
-								+ "</td><td></td><td></td><td></td><td></td></tr>";	
+								+ "</td><td></td><td></td><td></td><td></td><td></td><</tr>";	
 							} else {
 								var deviceRow = '<tr class="even" loaded="false">';
 								deviceRow += '<td>' + devices[j].device.name
+								+ "</td><td>" + sensor[i].device.shortId
 								+ "</td><td>" + devices[j].device.shortId
 								+ "</td><td>" + devices[j].location
-								+ "</td><td></td><td></td><td></td><td></td></tr>";	
+								+ "</td><td></td><td></td><td></td><td></td><td></td></tr>";	
 							}
 							
 							$("#devices tbody").append(deviceRow);
@@ -130,9 +147,25 @@ function getDevices(buildingId, floorId, zoneId){
 							var imgDevice = $("<img/>");
 							imgDevice.css("width", "30px").css("height", "30px");
 							imgDevice.attr("src", ctx + "/images/bulb.png");
-							trCtrl2.find("td").eq(3).append(imgDevice).addClass("pic_align");
-							trCtrl2.find("td").eq(6).append(devices[j].device.delay);
-							trCtrl2.find("td").eq(6).append("  ");
+							trCtrl2.find("td").eq(4).append(imgDevice).addClass("pic_align");
+//							if (devices[j].device.type == 2 && devices[j].device.subtype==4) {
+								trCtrl2.find("td").eq(7).append(brightness);
+								trCtrl2.find("td").eq(7).append("  ");
+								var buttonBrightness = $('<a/>');
+								trCtrl2.find("td").eq(7).append(buttonBrightness);
+								buttonBrightness.linkbutton({
+									text:msgChange,
+								});
+								buttonBrightness.bind('click', changeBrightnessLinkedToSensor);
+								var buttonSaveBrightness = $('<a/>');
+								buttonSaveBrightness.linkbutton({
+									text:msgSave,
+								});
+								$("#buttonSaveBrightness").append(buttonSaveBrightness);
+								buttonSaveBrightness.bind('click',saveBrightness);
+//							}
+							trCtrl2.find("td").eq(8).append(delayTime);
+							trCtrl2.find("td").eq(8).append("  ");
 //							trCtrl.attr("deviceId", value.device.id).attr("title",
 //									value.device.macAddress).attr("zoneId",
 //									value.device.zoneId);
@@ -143,7 +176,7 @@ function getDevices(buildingId, floorId, zoneId){
 //							$("#devices tbody tr:even").addClass("even");
 							
 							var buttonDelay = $('<a/>');
-							trCtrl2.find("td").eq(6).append(buttonDelay);
+							trCtrl2.find("td").eq(8).append(buttonDelay);
 							buttonDelay.linkbutton({
 								text:msgChange,
 							});
@@ -166,18 +199,31 @@ function getDevices(buildingId, floorId, zoneId){
 		$("#unlinkedDevices tbody tr").remove();
 				$.each(result, function(index, item){
 					$("#buttonSaveDelay").empty();
+					$("#buttonSaveBrightness").empty();
+					var delayTime = 0;
+					var brightness = 0;
+					$.post(ctx+'/device/getDelayBySensorIdAndDeviceId', {deviceId:item.device.id, sensorId:-1},
+							function(result){
+						delayTime = result;
+					});
+					$.post(ctx+'/device/getBrightnessBySensorIdAndDeviceId', {deviceId:item.device.id, sensorId:-1},
+							function(result){
+						brightness = result;
+					});
 						if (index%2==1){
 							var deviceRow = '<tr class="odd" loaded="false">';
 							deviceRow += '<td>' + item.device.name
+							+ "</td><td>"
 							+ "</td><td>" + item.device.shortId
 							+ "</td><td>" + item.location
-							+ "</td><td></td><td></td><td></td><td></td></tr>";	
+							+ "</td><td></td><td></td><td></td><td></td><td></td></tr>";	
 						} else {
 							var deviceRow = '<tr class="even" loaded="false">';
 							deviceRow += '<td>' + item.device.name
+							+ "</td><td>"
 							+ "</td><td>" + item.device.shortId
 							+ "</td><td>" + item.location
-							+ "</td><td></td><td></td><td></td><td></td></tr>";	
+							+ "</td><td></td><td></td><td></td><td></td><td></td></tr>";	
 						}
 						$("#unlinkedDevices tbody").append(deviceRow);
 
@@ -187,12 +233,28 @@ function getDevices(buildingId, floorId, zoneId){
 						var imgDevice = $("<img/>");
 						imgDevice.css("width", "30px").css("height", "30px");
 						imgDevice.attr("src", ctx + "/images/bulb.png");
-						trCtrl2.find("td").eq(3).append(imgDevice).addClass("pic_align");
-						trCtrl2.find("td").eq(6).append(item.device.delay);
-						trCtrl2.find("td").eq(6).append("  ");
+						trCtrl2.find("td").eq(4).append(imgDevice).addClass("pic_align");
+//						if (item.device.type == 2 && item.device.subtype==4) {
+							trCtrl2.find("td").eq(7).append(brightness);
+							trCtrl2.find("td").eq(7).append("  ");
+							var buttonBrightness = $('<a/>');
+							trCtrl2.find("td").eq(7).append(buttonBrightness);
+							buttonBrightness.linkbutton({
+								text:msgChange,
+							});
+							buttonBrightness.bind('click', changeBrightnessLinkedToSensor);
+							var buttonSaveBrightness = $('<a/>');
+							buttonSaveBrightness.linkbutton({
+								text:msgSave,
+							});
+							$("#buttonSaveBrightness").append(buttonSaveBrightness);
+							buttonSaveBrightness.bind('click',saveBrightness);						
+//						}
+						trCtrl2.find("td").eq(8).append(delayTime);
+						trCtrl2.find("td").eq(8).append("  ");
 						
 						var buttonDelay = $('<a/>');
-						trCtrl2.find("td").eq(6).append(buttonDelay);
+						trCtrl2.find("td").eq(8).append(buttonDelay);
 						buttonDelay.linkbutton({
 							text:msgChange,
 						});
@@ -243,7 +305,7 @@ function showItems(){
 	$('#mfloors').combobox('setValue','0').combobox('setText', '--'+msgFloorList+'--');
 	$('#mzones').combobox('setValue','0').combobox('setText', '--'+msgZoneList+'--');
 	var root = $(this).parent().parent();
-	var shortId = root.find('td:eq(1)').html();
+	var shortId = root.find('td:eq(2)').html();
 	var name = root.find('td:eq(0)').html();
 	var zoneId = root.attr('zoneId');
 	$('#sensor-shortId').html(shortId);
@@ -323,6 +385,7 @@ function saveDevices() {
 			return $(this).form('validate');
 		},
 		success : function(result) {
+			console.log(result);
 			result = eval('(' + result + ')');
 			if (result.commonData.status == 200) {
 				$('#dialog').dialog('close');
@@ -447,11 +510,10 @@ function searchUnlinkedDevices(){
 
 			
 function getDeviceProps(macAddr,trCtrl) {
-
 						var loaded = $(this).attr("loaded");
-						var control = trCtrl.find("td").eq(4);
-						var actionCtrl = trCtrl.find("td").eq(5);
-
+						var control = trCtrl.find("td").eq(5);
+						var actionCtrl = trCtrl.find("td").eq(6);
+						var id = trCtrl.find("td").eq(0).html().split(' ').join('');
 						$.ajax({
 								url : ctx + "/device/getDevicePropsByMac.json",
 								type : "POST",
@@ -543,7 +605,7 @@ function getDeviceProps(macAddr,trCtrl) {
 										else if (result.response.type == 0x02
 														&& result.response.subtype == 0x04) {
 											control.empty();
-											if (loaded=="false"){
+											if (!result.response.loading){
 												actionCtrl.html("<div id='slider_"+id+"' style='width:100px'></div>");
 												
 												$("#slider_"+id).slider({
@@ -560,25 +622,7 @@ function getDeviceProps(macAddr,trCtrl) {
 											
 											$("#slider_"+id).slider('setValue', result.response.brightness);
 											img.attr("src", ctx + "/images/dimmer0.png");
-												trCtrl2.find("td").eq(4).append(img).addClass("pic_align");
-												
-												if (loaded=="false"){
-													actionCtrl.html("<div id='slider_"+id+"' style='width:100px'></div>");
-													
-													$("#slider_"+id).slider({
-														min:0,max:10,step:1,showTip:true,
-														onComplete: function(value){
-											            	changeBrightness(macAddr,value);
-											            },
-											            tipFormatter: function(value){
-											                return value;
-											            }
-													});
-													control.attr("loaded", "true");
-												}
-												
-												$("#slider_"+id).slider('setValue', result.response.brightness);
-	
+											trCtrl.find("td").eq(5).append(img).addClass("pic_align");
 											}
 											else if (result.response.type == 0x02
 													&& result.response.subtype == 0x02) {
@@ -595,7 +639,6 @@ function getDeviceProps(macAddr,trCtrl) {
 										else{
 											control.empty();
 											img.attr("src", ctx + "/images/offline.png");
-										
 											control.append(img).addClass("pic_align");
 										}
 									
@@ -626,21 +669,23 @@ function takeActionDevice(e){
 
 function changeDelayTime(){
 	var root = $(this).parent().parent();
-	var shortId = root.find('td:eq(1)').html();
+	var shortId = root.find('td:eq(2)').html();
 	var name = root.find('td:eq(0)').html();
-	var location =  root.find('td:eq(2)').html();
+	var location = root.find('td:eq(3)').html();
+	var sensorShortId = root.find('td:eq(1)').html();
 	$('#light-name').html(name);
 	$('#light-shortId').html(shortId);
 	$('#light-location').html(location);
+	$('#sensor-name-delay2').html(sensorShortId);
 	$("#delay-dialog").dialog('open');
-	$("#delayTime").empty();
+	$("#delayTime").val("");
 }
 
-function saveDelayTime(){
-	
+function saveDelayTime(){	
 	var shortId = $('#light-shortId').html();
 	var time = $("#delayTime").attr('value');
-	$.post(ctx+'/device/saveDelay', {id:shortId, time: time},
+	var sensorId = $('#sensor-name-delay2').html();
+	$.post(ctx+'/device/saveDelay', {deviceShortId:shortId, sensorShortId:sensorId, time: time},
 			function(result){
 				 if (result.commonData.status == 200) {
 	               $.messager.show({
@@ -649,7 +694,7 @@ function saveDelayTime(){
 	                	timeout:3000
 	                });	
 	                $("#delay-dialog").dialog('close');
-	                $("#delayTime").empty();
+	                $("#delayTime").val("");
 	                searchDevices();
 
 	               } else {
@@ -664,20 +709,21 @@ function saveDelayTime(){
 
 function changeSensorDelayTime(){
 	var root = $(this).parent().parent();
-	var shortId = root.find('td:eq(1)').html();
+	var shortId = root.find('td:eq(2)').html();
 	var name = root.find('td:eq(0)').html();
-	var location =  root.find('td:eq(2)').html();
+	var location =  root.find('td:eq(3)').html();
 	$('#sensor-name-delay').html(name);
 	$('#sensor-shortId-delay').html(shortId);
 	$('#sensor-location-delay').html(location);
 	$("#sensor-delay-dialog").dialog('open');
-	$("#sensorDelayTime").empty();
+	$("#sensorDelayTime").val("");
 }
 
 function saveSensorDelayTime(){
-	var shortId = $('#sensor-shortId-delay').html();
+	var sensorId = $('#sensor-shortId-delay').html();
 	var time = $("#sensorDelayTime").attr('value');
-	$.post(ctx+'/device/saveDelay', {id:shortId, time: time},
+	var shortId = "";
+	$.post(ctx+'/device/saveDelay', {deviceShortId:shortId, sensorShortId:sensorId, time: time},
 			function(result){
 				 if (result.commonData.status == 200) {
 	               $.messager.show({
@@ -686,13 +732,53 @@ function saveSensorDelayTime(){
 	                	timeout:3000
 	                });	
 	                $("#sensor-delay-dialog").dialog('close');
-	                $("#sensorDelayTime").empty();
+	                $("#sensorDelayTime").val("");
 	                searchDevices();
 
 	               } else {
 	                   $.messager.show({     
 	                       title: msgError,
 	                       msg: msgDeviceDelayChangeFail
+	                   });
+	               }
+				
+		}, 'json');
+}
+
+function changeBrightnessLinkedToSensor(){
+	var root = $(this).parent().parent();
+	var shortId = root.find('td:eq(2)').html();
+	var name = root.find('td:eq(0)').html();
+	var location = root.find('td:eq(3)').html();
+	var sensorShortId = root.find('td:eq(1)').html();
+	$('#light-name2').html(name);
+	$('#light-shortId2').html(shortId);
+	$('#light-location2').html(location);
+	$('#sensor-brightness').html(sensorShortId);
+	$("#brightness-dialog").dialog('open');
+	$("#brightness").val("");
+}
+
+function saveBrightness(){	
+	var shortId = $('#light-shortId2').html();
+	var brightness = $("#brightness").attr('value');
+	var sensorId = $('#sensor-brightness').html();
+	$.post(ctx+'/device/saveBrightness', {deviceShortId:shortId, sensorShortId:sensorId, brightness: brightness},
+			function(result){
+				 if (result.commonData.status == 200) {
+	               $.messager.show({
+	            	   title:msgSuccess,
+	            	   msg: msgDeviceBrightnessChangeSuccess,
+	                	timeout:3000
+	                });	
+	                $("#brightness-dialog").dialog('close');
+	                $("#brightness").val("");
+	                searchDevices();
+
+	               } else {
+	                   $.messager.show({     
+	                       title: msgError,
+	                       msg: msgDeviceBrightnessChangeFail
 	                   });
 	               }
 				
